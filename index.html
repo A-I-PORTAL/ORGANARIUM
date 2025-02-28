@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Mobile optimization -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aurora Harmonics: The Cosmic Synthesizer</title>
+  <!-- Load a rounded, modern sans-serif font -->
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset and base styling */
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Quicksand', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      height: 100%;
+    }
+    /* Fullscreen canvas */
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    /* Splash screen styling */
+    #splash {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      color: #fff;
+      font-size: 2em;
+      text-align: center;
+      padding: 20px;
+      cursor: pointer;
+    }
+    #splash h1 {
+      margin: 0;
+      padding: 0.5em;
+    }
+    #splash p {
+      margin: 0;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+    /* Hamburger icon for settings */
+    #hamburger {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+      font-size: 30px;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    /* Settings panel overlay */
+    #settingsPanel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      z-index: 30;
+      padding: 20px;
+      box-sizing: border-box;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+    }
+    #settingsPanel.visible {
+      transform: translateX(0);
+    }
+    #settingsPanel h2 {
+      margin-top: 0;
+      font-size: 1.5em;
+      border-bottom: 1px solid #555;
+      padding-bottom: 10px;
+    }
+    #settingsPanel label {
+      display: block;
+      margin: 15px 0 5px;
+      font-size: 0.9em;
+    }
+    #settingsPanel select,
+    #settingsPanel input[type="text"] {
+      width: 100%;
+      padding: 5px;
+      font-size: 0.9em;
+      border: none;
+      border-radius: 3px;
+      margin-bottom: 5px;
+    }
+    #settingsPanel button {
+      margin-top: 15px;
+      padding: 8px 12px;
+      font-size: 1em;
+      border: none;
+      border-radius: 3px;
+      background: #1a2a6c;
+      color: #fff;
+      cursor: pointer;
+    }
+    #settingsPanel button + button {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fullscreen canvas for drawing our instrument -->
+  <canvas id="canvas"></canvas>
+  <!-- Splash screen overlay -->
+  <div id="splash">
+    <h1>Aurora Harmonics</h1>
+    <p>Touch or Click to Begin Your Cosmic Journey</p>
+  </div>
+  <!-- Hamburger menu icon -->
+  <div id="hamburger">&#9776;</div>
+  <!-- Settings panel overlay -->
+  <div id="settingsPanel">
+    <h2>Sound Settings</h2>
+    <!-- Tap Sound -->
+    <label>Tap Sound Preset:</label>
+    <select id="tapPresetSelect">
+      <option value="Default">Default (Synthesized)</option>
+      <option value="Bell">Bell</option>
+      <option value="Chime">Chime</option>
+      <option value="Custom">Custom</option>
+    </select>
+    <div id="tapCustomDiv" style="display:none;">
+      <label>Custom Tap Sound URL:</label>
+      <input type="text" id="tapSoundInput" placeholder="Enter URL for tap sound" />
+    </div>
+    <!-- Multi-Touch Sound -->
+    <label>Multi-Touch Sound Preset:</label>
+    <select id="multiPresetSelect">
+      <option value="Default">Default (Synthesized)</option>
+      <option value="SoftPop">Soft Pop</option>
+      <option value="Resonant">Resonant</option>
+      <option value="Custom">Custom</option>
+    </select>
+    <div id="multiCustomDiv" style="display:none;">
+      <label>Custom Multi-Touch Sound URL:</label>
+      <input type="text" id="multiSoundInput" placeholder="Enter URL for multi-touch sound" />
+    </div>
+    <!-- Slow Drag Sound -->
+    <label>Slow Drag Sound Preset:</label>
+    <select id="slowPresetSelect">
+      <option value="Default">Default (Synthesized)</option>
+      <option value="Mellow">Mellow</option>
+      <option value="Smooth">Smooth</option>
+      <option value="Custom">Custom</option>
+    </select>
+    <div id="slowCustomDiv" style="display:none;">
+      <label>Custom Slow Drag Sound URL:</label>
+      <input type="text" id="slowDragSoundInput" placeholder="Enter URL for slow drag sound" />
+    </div>
+    <!-- Fast Drag Sound -->
+    <label>Fast Drag Sound Preset:</label>
+    <select id="fastPresetSelect">
+      <option value="Default">Default (Synthesized)</option>
+      <option value="Sharp">Sharp</option>
+      <option value="Bright">Bright</option>
+      <option value="Custom">Custom</option>
+    </select>
+    <div id="fastCustomDiv" style="display:none;">
+      <label>Custom Fast Drag Sound URL:</label>
+      <input type="text" id="fastDragSoundInput" placeholder="Enter URL for fast drag sound" />
+    </div>
+    <div>
+      <button id="saveSettings">Save</button>
+      <button id="closeSettings">Close</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // ---------------------------
+      // Core Elements & Variables
+      // ---------------------------
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const splash = document.getElementById('splash');
+      let noteGrid = [];
+
+      // Set canvas dimensions and rebuild note grid on resize.
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const gridCols = 12, gridRows = 3;
+        const squareSize = 40, spacing = 10;
+        const gridWidth = gridCols * squareSize + (gridCols - 1) * spacing;
+        const gridHeight = gridRows * squareSize + (gridRows - 1) * spacing;
+        const startX = (canvas.width - gridWidth) / 2;
+        const startY = (canvas.height - gridHeight) / 2;
+        noteGrid = [];
+        for (let r = 0; r < gridRows; r++) {
+          for (let c = 0; c < gridCols; c++) {
+            let hue = c * (360 / 12);
+            let lightness = (r === 0) ? 30 : (r === 1) ? 50 : 70;
+            const color = `hsla(${hue}, 70%, ${lightness}%, 0.3)`;
+            noteGrid.push({ x: startX + c * (squareSize + spacing), y: startY + r * (squareSize + spacing), size: squareSize, color });
+          }
+        }
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      // ---------------------------
+      // Web Audio API Setup
+      // ---------------------------
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+
+      // ---------------------------
+      // Visual Effects Classes
+      // ---------------------------
+      class Ripple {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.radius = 0;
+          this.maxRadius = Math.random() * 100 + 50;
+          this.lineWidth = 3;
+          this.alpha = 1;
+        }
+        update() { this.radius += 2; this.alpha -= 0.02; }
+        draw(ctx) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
+          ctx.lineWidth = this.lineWidth;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+      const ripples = [];
+
+      class BubbleParticle {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+          this.radius = Math.random() * 5 + 3;
+          const angle = Math.random() * 2 * Math.PI;
+          const speed = Math.random() * 3 + 1;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.life = 60 + Math.floor(Math.random() * 30);
+          this.alpha = 0.8;
+          this.hue = Math.floor(Math.random() * 360);
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.life--; this.alpha = this.life / 90; }
+        draw(ctx) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, ${this.alpha})`;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      const bubbles = [];
+      function createBubbleExplosion(x, y) {
+        for (let i = 0; i < 25; i++) {
+          bubbles.push(new BubbleParticle(x, y));
+        }
+      }
+
+      class Star {
+        constructor(x, y, radius, alpha, twinkleSpeed) {
+          this.x = x;
+          this.y = y;
+          this.radius = radius;
+          this.alpha = alpha;
+          this.twinkleSpeed = twinkleSpeed;
+          this.alphaDirection = 1;
+        }
+        update() {
+          this.alpha += this.twinkleSpeed * this.alphaDirection;
+          if (this.alpha >= 1) { this.alpha = 1; this.alphaDirection = -1; }
+          else if (this.alpha <= 0.3) { this.alpha = 0.3; this.alphaDirection = 1; }
+        }
+        draw(ctx) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      const stars = [];
+      const starCount = 50;
+      for (let i = 0; i < starCount; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const radius = Math.random() * 1.5 + 0.5;
+        const alpha = Math.random() * 0.7 + 0.3;
+        const twinkleSpeed = Math.random() * 0.005 + 0.002;
+        stars.push(new Star(x, y, radius, alpha, twinkleSpeed));
+      }
+
+      class ElectricSpark {
+        constructor(x, y) {
+          this.segments = [{ x, y }];
+          const segmentCount = 5 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < segmentCount; i++) {
+            let last = this.segments[this.segments.length - 1];
+            let dx = (Math.random() - 0.5) * 30;
+            let dy = (Math.random() - 0.5) * 30;
+            this.segments.push({ x: last.x + dx, y: last.y + dy });
+          }
+          this.branches = [];
+          if (Math.random() < 0.6) {
+            let branchStartIndex = Math.floor(this.segments.length / 2);
+            let branchStart = this.segments[branchStartIndex];
+            let branchSegments = [{ x: branchStart.x, y: branchStart.y }];
+            const branchCount = 3 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < branchCount; i++) {
+              let last = branchSegments[branchSegments.length - 1];
+              let dx = (Math.random() - 0.5) * 20;
+              let dy = (Math.random() - 0.5) * 20;
+              branchSegments.push({ x: last.x + dx, y: last.y + dy });
+            }
+            this.branches.push(branchSegments);
+          }
+          this.life = 60;
+          this.alpha = 1;
+        }
+        update() { this.life--; this.alpha = this.life / 60; }
+        draw(ctx) {
+          ctx.save();
+          for (let i = 1; i < this.segments.length; i++) {
+            let p0 = this.segments[i - 1], p1 = this.segments[i];
+            let t = i / this.segments.length;
+            ctx.lineWidth = (1 - t) * 2;
+            ctx.strokeStyle = `rgba(200,220,255, ${this.alpha * (1 - t)})`;
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.stroke();
+          }
+          this.branches.forEach(branch => {
+            for (let i = 1; i < branch.length; i++) {
+              let p0 = branch[i - 1], p1 = branch[i];
+              let t = i / branch.length;
+              ctx.lineWidth = (1 - t) * 1.5;
+              ctx.strokeStyle = `rgba(200,220,255, ${this.alpha * (1 - t)})`;
+              ctx.beginPath();
+              ctx.moveTo(p0.x, p0.y);
+              ctx.lineTo(p1.x, p1.y);
+              ctx.stroke();
+            }
+          });
+          ctx.restore();
+        }
+      }
+      const electricSparks = [];
+
+      // ---------------------------
+      // Sound Functions & Preset Support
+      // ---------------------------
+      // Define sound presets. Note: "Default" is empty so that synthesized tone is used.
+      const soundPresets = {
+        tap: {
+          "Default": "",
+          "Bell": "https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3",
+          "Chime": "https://s3.amazonaws.com/freecodecamp/drums/Chord_1.mp3"
+        },
+        multi: {
+          "Default": "",
+          "SoftPop": "https://s3.amazonaws.com/freecodecamp/drums/Dsc_Oh.mp3",
+          "Resonant": "https://s3.amazonaws.com/freecodecamp/drums/Heater-6.mp3"
+        },
+        slow: {
+          "Default": "",
+          "Mellow": "https://s3.amazonaws.com/freecodecamp/drums/Brk_Snr.mp3",
+          "Smooth": "https://s3.amazonaws.com/freecodecamp/drums/side_stick_1.mp3"
+        },
+        fast: {
+          "Default": "",
+          "Sharp": "https://s3.amazonaws.com/freecodecamp/drums/Heater-3.mp3",
+          "Bright": "https://s3.amazonaws.com/freecodecamp/drums/Kick_n_Hat.mp3"
+        }
+      };
+      // Load saved settings or defaults.
+      let soundSettings = {
+        tap: localStorage.getItem('tapSound') || "",
+        multi: localStorage.getItem('multiSound') || "",
+        slow: localStorage.getItem('slowDragSound') || "",
+        fast: localStorage.getItem('fastDragSound') || ""
+      };
+      let selectedPresets = {
+        tap: localStorage.getItem('tapPreset') || "Default",
+        multi: localStorage.getItem('multiPreset') || "Default",
+        slow: localStorage.getItem('slowPreset') || "Default",
+        fast: localStorage.getItem('fastPreset') || "Default"
+      };
+
+      // Cache for custom audio elements to reduce lag.
+      const audioCache = {};
+      function getAudioElement(url) {
+        if (audioCache[url]) {
+          return audioCache[url].cloneNode();
+        }
+        const audio = new Audio(url);
+        audio.preload = 'auto';
+        audioCache[url] = audio;
+        return audio.cloneNode();
+      }
+      function playCustomSound(url, playbackRate) {
+        if (!url) return;
+        const audio = getAudioElement(url);
+        if (playbackRate) {
+          audio.playbackRate = playbackRate;
+        }
+        audio.play();
+      }
+
+      // In each sound function, if a custom sound is set, use it with pitch modulation.
+      function playRippleSound(x) {
+        if (soundSettings.tap) {
+          // Base frequency 300 Hz.
+          let factor = (300 + (x / canvas.width) * 400) / 300;
+          playCustomSound(soundSettings.tap, factor);
+          return;
+        }
+        const frequency = 300 + (x / canvas.width) * 400;
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 1);
+      }
+      function playDelicateSparkSound(x) {
+        if (soundSettings.slow) {
+          // Base frequency 100 Hz.
+          let factor = (100 + (x / canvas.width) * 100) / 100;
+          playCustomSound(soundSettings.slow, factor);
+          return;
+        }
+        const frequency = 100 + (x / canvas.width) * 100;
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.8);
+      }
+      function playBubbleSound(x) {
+        if (soundSettings.multi) {
+          // Base frequency 200 Hz.
+          let factor = (200 + (x / canvas.width) * 300) / 200;
+          playCustomSound(soundSettings.multi, factor);
+          return;
+        }
+        const frequency = 200 + (x / canvas.width) * 300;
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'triangle';
+        oscillator.frequency.value = frequency;
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 1);
+      }
+
+      // ---------------------------
+      // Note Grid Drawing Helpers
+      // ---------------------------
+      function drawNoteGrid(ctx) {
+        noteGrid.forEach(cell => { drawRoundedRect(ctx, cell.x, cell.y, cell.size, cell.size, 10, cell.color); });
+      }
+      function drawRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // ---------------------------
+      // Input Handling
+      // ---------------------------
+      let lastDrag = null;
+      const dragSoundThrottleMs = 100;
+      const dragSpeedThreshold = 0.5;
+      function handleInput(e) {
+        e.preventDefault();
+        if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+        if (e.touches && e.touches.length > 1) {
+          for (let i = 0; i < e.touches.length; i++) {
+            const x = e.touches[i].clientX;
+            const y = e.touches[i].clientY;
+            createBubbleExplosion(x, y);
+            playBubbleSound(x);
+          }
+        } else {
+          let x, y;
+          if (e.touches && e.touches.length) { x = e.touches[0].clientX; y = e.touches[0].clientY; }
+          else { x = e.clientX; y = e.clientY; }
+          ripples.push(new Ripple(x, y));
+          playRippleSound(x);
+        }
+        // Hide splash on first interaction.
+        if (splash.style.display !== "none") {
+          splash.style.transition = "opacity 1s";
+          splash.style.opacity = 0;
+          setTimeout(() => { splash.style.display = "none"; }, 1000);
+        }
+      }
+      function handleDrag(e) {
+        e.preventDefault();
+        if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+        let points = [];
+        if (e.touches) {
+          for (let i = 0; i < e.touches.length; i++) {
+            points.push({ x: e.touches[i].clientX, y: e.touches[i].clientY });
+          }
+        } else { points.push({ x: e.clientX, y: e.clientY }); }
+        points.forEach(pt => {
+          electricSparks.push(new ElectricSpark(pt.x, pt.y));
+          playDelicateSparkSound(pt.x);
+        });
+      }
+      canvas.addEventListener('touchstart', handleInput, false);
+      canvas.addEventListener('mousedown', handleInput, false);
+      canvas.addEventListener('touchmove', handleDrag, false);
+      canvas.addEventListener('mousemove', handleDrag, false);
+      splash.addEventListener('touchstart', handleInput, false);
+      splash.addEventListener('mousedown', handleInput, false);
+
+      // ---------------------------
+      // Hamburger & Settings Panel Logic
+      // ---------------------------
+      const hamburger = document.getElementById('hamburger');
+      const settingsPanel = document.getElementById('settingsPanel');
+      const tapPresetSelect = document.getElementById('tapPresetSelect');
+      const multiPresetSelect = document.getElementById('multiPresetSelect');
+      const slowPresetSelect = document.getElementById('slowPresetSelect');
+      const fastPresetSelect = document.getElementById('fastPresetSelect');
+      const tapCustomDiv = document.getElementById('tapCustomDiv');
+      const multiCustomDiv = document.getElementById('multiCustomDiv');
+      const slowCustomDiv = document.getElementById('slowCustomDiv');
+      const fastCustomDiv = document.getElementById('fastCustomDiv');
+      const tapSoundInput = document.getElementById('tapSoundInput');
+      const multiSoundInput = document.getElementById('multiSoundInput');
+      const slowDragSoundInput = document.getElementById('slowDragSoundInput');
+      const fastDragSoundInput = document.getElementById('fastDragSoundInput');
+      const saveSettingsBtn = document.getElementById('saveSettings');
+      const closeSettingsBtn = document.getElementById('closeSettings');
+
+      // Initialize selectors with saved values.
+      tapPresetSelect.value = selectedPresets.tap;
+      multiPresetSelect.value = selectedPresets.multi;
+      slowPresetSelect.value = selectedPresets.slow;
+      fastPresetSelect.value = selectedPresets.fast;
+      function checkPreset(selectElem, customDiv, key) {
+        if (selectElem.value === "Custom") {
+          customDiv.style.display = "block";
+        } else {
+          customDiv.style.display = "none";
+          soundSettings[key] = soundPresets[key][selectElem.value] || "";
+        }
+      }
+      tapPresetSelect.addEventListener("change", () => { checkPreset(tapPresetSelect, tapCustomDiv, "tap"); });
+      multiPresetSelect.addEventListener("change", () => { checkPreset(multiPresetSelect, multiCustomDiv, "multi"); });
+      slowPresetSelect.addEventListener("change", () => { checkPreset(slowPresetSelect, slowCustomDiv, "slow"); });
+      fastPresetSelect.addEventListener("change", () => { checkPreset(fastPresetSelect, fastCustomDiv, "fast"); });
+      hamburger.addEventListener('click', () => { settingsPanel.classList.toggle('visible'); });
+      closeSettingsBtn.addEventListener('click', () => { settingsPanel.classList.remove('visible'); });
+      saveSettingsBtn.addEventListener('click', () => {
+        selectedPresets.tap = tapPresetSelect.value;
+        selectedPresets.multi = multiPresetSelect.value;
+        selectedPresets.slow = slowPresetSelect.value;
+        selectedPresets.fast = fastPresetSelect.value;
+        localStorage.setItem('tapPreset', selectedPresets.tap);
+        localStorage.setItem('multiPreset', selectedPresets.multi);
+        localStorage.setItem('slowPreset', selectedPresets.slow);
+        localStorage.setItem('fastPreset', selectedPresets.fast);
+        if (selectedPresets.tap === "Custom") {
+          soundSettings.tap = tapSoundInput.value.trim();
+        } else {
+          soundSettings.tap = soundPresets.tap[selectedPresets.tap] || "";
+        }
+        if (selectedPresets.multi === "Custom") {
+          soundSettings.multi = multiSoundInput.value.trim();
+        } else {
+          soundSettings.multi = soundPresets.multi[selectedPresets.multi] || "";
+        }
+        if (selectedPresets.slow === "Custom") {
+          soundSettings.slow = slowDragSoundInput.value.trim();
+        } else {
+          soundSettings.slow = soundPresets.slow[selectedPresets.slow] || "";
+        }
+        if (selectedPresets.fast === "Custom") {
+          soundSettings.fast = fastDragSoundInput.value.trim();
+        } else {
+          soundSettings.fast = soundPresets.fast[selectedPresets.fast] || "";
+        }
+        localStorage.setItem('tapSound', soundSettings.tap);
+        localStorage.setItem('multiSound', soundSettings.multi);
+        localStorage.setItem('slowDragSound', soundSettings.slow);
+        localStorage.setItem('fastDragSound', soundSettings.fast);
+        settingsPanel.classList.remove('visible');
+      });
+
+      // ---------------------------
+      // Main Animation Loop
+      // ---------------------------
+      function animate() {
+        const time = Date.now() * 0.0002;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const maxRadius = Math.max(canvas.width, canvas.height) / 1.5;
+        const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
+        gradient.addColorStop(0, "hsl(" + (time * 50 % 360) + ", 60%, 20%)");
+        gradient.addColorStop(1, "#000");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawNoteGrid(ctx);
+        stars.forEach(star => { star.update(); star.draw(ctx); });
+        for (let i = ripples.length - 1; i >= 0; i--) {
+          ripples[i].update();
+          ripples[i].draw(ctx);
+          if (ripples[i].alpha <= 0) { ripples.splice(i, 1); }
+        }
+        for (let i = electricSparks.length - 1; i >= 0; i--) {
+          electricSparks[i].update();
+          electricSparks[i].draw(ctx);
+          if (electricSparks[i].alpha <= 0) { electricSparks.splice(i, 1); }
+        }
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+          bubbles[i].update();
+          bubbles[i].draw(ctx);
+          if (bubbles[i].life <= 0) { bubbles.splice(i, 1); }
+        }
+        requestAnimationFrame(animate);
+      }
+      animate();
+    });
+  </script>
+</body>
+</html>
